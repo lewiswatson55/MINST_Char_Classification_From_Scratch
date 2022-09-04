@@ -1,4 +1,14 @@
 import numpy as np
+import wandb
+
+
+wandb.init(project="MNIST-NN-Python")
+
+wandb.config = {
+  "learning_rate": 0.5,
+  "epochs": 500,
+  "batch_size": 10
+}
 
 
 def init_nn():
@@ -26,6 +36,10 @@ def one_hot(Y):
 
 def softmax(x):
     return np.exp(x) / np.sum(np.exp(x), axis=0)
+
+# third layer activation function
+def dropout(x):
+    return np.where(x > 0, x, 0)
 
 
 def forward_propagation(w1, b1, w2, b2, X):
@@ -61,15 +75,20 @@ def get_accuracy(a2, Y):
     return (predictions == Y).mean()
 
 
-def gradient_descent(X, Y, learning_rate, iterations):
+def gradient_descent(X, Y, learning_rate, iterations, X_val, Y_val):
     w1, b1, w2, b2 = init_nn()
     for i in range(iterations):
         z1, a1, z2, a2 = forward_propagation(w1, b1, w2, b2, X)
         dw1, db1, dw2, db2 = backward_propagation(z1, a1, z2, a2, w1, w2, X, Y)
         w1, b1, w2, b2 = update_parameters(w1, b1, w2, b2, dw1, db1, dw2, db2, learning_rate)
         if i % 10 == 0:
+            # Check Validation Accuracy
+            validate_run(w1, b1, w2, b2, X_val, Y_val)
             print("Iteration: ", i)
-            print("Accuracy: ", get_accuracy(a2, Y))
+            accuracy = get_accuracy(a2, Y)
+            print("Accuracy: ", accuracy)
+            wandb.log({"Accuracy": accuracy})
+            print()
     return w1, b1, w2, b2
 
 
@@ -78,4 +97,12 @@ def test(w1, b1, w2, b2, X, Y):
     print("====== Training Complete ======")
     print("Validating the model...")
     z1, a1, z2, a2 = forward_propagation(w1, b1, w2, b2, X)
-    print("Test Data Accuracy: ", get_accuracy(a2, Y))
+    accuracy = get_accuracy(a2, Y)
+    wandb.log({"Test Accuracy": accuracy})
+    print("Test Data Accuracy: ", accuracy)
+
+def validate_run(w1, b1, w2, b2, X, Y):
+    z1, a1, z2, a2 = forward_propagation(w1, b1, w2, b2, X)
+    accuracy = get_accuracy(a2, Y)
+    wandb.log({"Validation Accuracy": accuracy})
+    print("Validation Accuracy: ", accuracy)
